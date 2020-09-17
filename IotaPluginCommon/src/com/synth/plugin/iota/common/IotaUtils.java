@@ -23,6 +23,9 @@ import android.content.res.TypedArray;
 import android.content.res.Resources;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.AnimationDrawable;
@@ -34,19 +37,26 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.Shape;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.graphics.Outline;
+import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Path.Direction;
 import android.graphics.PixelFormat;
-import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.BitmapShader;
 import android.media.AudioManager;
 import android.os.Message;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -60,6 +70,7 @@ import android.widget.TextView;
 
 import co.potatoproject.plugin.volume.common.*;
 
+import java.io.File;
 import java.text.NumberFormat;
 import java.util.Objects;
 
@@ -395,11 +406,20 @@ public class IotaUtils {
       }
 
       public static void setBackgroud(Context context, View[] views, Drawable[] defaultDrawables, String[] defaultDrawablesNames) {
-          boolean roundSystem = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_ROUNDED_SYSTEM, 1, UserHandle.USER_CURRENT) == 1;
-          if (roundSystem) {
-              setDefaultBackground(context, views, defaultDrawables);
-          } else {
-              setRoundedBackground(context, views, defaultDrawables, defaultDrawablesNames);
+          int backgroundType = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.SYNTHOS_VOLUME_PANEL_BACKGROUND_TYPE, 0, UserHandle.USER_CURRENT);
+          switch (backgroundType) {
+              case 0:
+                  setDefaultBackground(context, views, defaultDrawables);
+                  break;
+              case 1:
+                  setDefaultColorBackground(context, views, defaultDrawables, defaultDrawablesNames);
+                  break;
+              case 2:
+                  setCustomColorBackground(context, views, defaultDrawables, defaultDrawablesNames);
+                  break;
+              case 3:
+                  setImageBackground(context, views, defaultDrawables, defaultDrawablesNames);
+                  break;
           }
       }
 
@@ -409,10 +429,87 @@ public class IotaUtils {
           }
       }
 
+      public static void setDefaultColorBackground(Context context, View[] views, Drawable[] defaultDrawables, String[] defaultDrawablesNames) {
+          float roundValue = (float) Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_ROUNDED_VALUE, 36, UserHandle.USER_CURRENT);
+          boolean gradientStroke = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_GRADIENT_STROKE, 1, UserHandle.USER_CURRENT) == 1;
+          TypedValue tValue = new TypedValue();
+          context.getTheme().resolveAttribute(android.R.attr.dialogCornerRadius, tValue, true);
+          float roundSystem = (float) tValue.data;
+          int colorDrawable;
+
+          try {
+              for (int i = 0; i < views.length; i++) {
+                  if (defaultDrawablesNames[i].equals("rounded_bg_full")) {
+                      TypedValue value = new TypedValue();
+                      context.getTheme().resolveAttribute(android.R.attr.colorBackgroundFloating, value, true);
+                      colorDrawable = value.data;
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, colorDrawable, round, gradientStroke));
+                  } else {
+                      TypedValue value = new TypedValue();
+                      context.getTheme().resolveAttribute(android.R.attr.panelColorBackground, value, true);
+                      colorDrawable = value.data;
+                      float[] round = {0, 0, 0, 0, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, colorDrawable, round, gradientStroke));
+                  }
+              }
+          } catch (Exception e) {
+              Log.d(TAG, e.getMessage());
+          }
+      }
+
+      public static void setCustomColorBackground(Context context, View[] views, Drawable[] defaultDrawables, String[] defaultDrawablesNames) {
+          float roundValue = (float) Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_ROUNDED_VALUE, 36, UserHandle.USER_CURRENT);
+          boolean gradientStroke = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_GRADIENT_STROKE, 1, UserHandle.USER_CURRENT) == 1;
+          int color = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.SYNTHOS_VOLUME_PANEL_BACKGROUND_COLOR, Color.WHITE, UserHandle.USER_CURRENT);
+          TypedValue tValue = new TypedValue();
+          context.getTheme().resolveAttribute(android.R.attr.dialogCornerRadius, tValue, true);
+          float roundSystem = (float) tValue.data;
+
+          try {
+              for (int i = 0; i < views.length; i++) {
+                  if (defaultDrawablesNames[i].equals("rounded_bg_full")) {
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, color, round, gradientStroke));
+                  } else {
+                      float[] round = {0, 0, 0, 0, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, color, round, gradientStroke));
+                  }
+              }
+          } catch (Exception e) {
+              Log.d(TAG, e.getMessage());
+          }
+      }
+
+      public static void setImageBackground(Context context, View[] views, Drawable[] defaultDrawables, String[] defaultDrawablesNames) {
+          float roundValue = (float) Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_ROUNDED_VALUE, 36, UserHandle.USER_CURRENT);
+          boolean gradientStroke = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_GRADIENT_STROKE, 1, UserHandle.USER_CURRENT) == 1;
+          int color = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.SYNTHOS_VOLUME_PANEL_BACKGROUND_COLOR, Color.WHITE, UserHandle.USER_CURRENT);
+          TypedValue tValue = new TypedValue();
+          context.getTheme().resolveAttribute(android.R.attr.dialogCornerRadius, tValue, true);
+          float roundSystem = (float) tValue.data;
+
+          try {
+              for (int i = 0; i < views.length; i++) {
+                  if (defaultDrawablesNames[i].equals("rounded_bg_full")) {
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeImage(context, views[i], color, round, gradientStroke));
+                  } else {
+                      float[] round = {0, 0, 0, 0, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(null);
+                  }
+              }
+          } catch (Exception e) {
+              Log.d(TAG, e.getMessage());
+          }
+      }
+
       public static void setRoundedBackground(Context context, View[] views, Drawable[] defaultDrawables, String[] defaultDrawablesNames) {
           float roundValue = (float) Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_ROUNDED_VALUE, 36, UserHandle.USER_CURRENT);
           boolean gradientStroke = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_GRADIENT_STROKE, 1, UserHandle.USER_CURRENT) == 1;
           boolean roundDefault = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.VOLUME_DIALOG_ROUNDED_SYSTEM, 1, UserHandle.USER_CURRENT) == 1;
+          int backgroundType = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.SYNTHOS_VOLUME_PANEL_BACKGROUND_TYPE, 0, UserHandle.USER_CURRENT);
+          int color = Settings.System.getIntForUser(context.getContentResolver(), Settings.System.SYNTHOS_VOLUME_PANEL_BACKGROUND_COLOR, Color.WHITE, UserHandle.USER_CURRENT);
           TypedValue tValue = new TypedValue();
           context.getTheme().resolveAttribute(android.R.attr.dialogCornerRadius, tValue, true);
           float roundSystem = (float) tValue.data;
@@ -424,15 +521,15 @@ public class IotaUtils {
                   if (defaultDrawablesNames[i].equals("rounded_bg_full")) {
                       TypedValue value = new TypedValue();
                       context.getTheme().resolveAttribute(android.R.attr.colorBackgroundFloating, value, true);
-                      colorDrawable = value.data;
+                      colorDrawable = backgroundType == 1 ? value.data : color;
                       float[] round = {lastRound, lastRound, lastRound, lastRound, lastRound, lastRound, lastRound, lastRound};
-                      views[i].setBackground(createGradientStrokeDrawable(context, colorDrawable, round, gradientStroke));
+                      views[i].setBackground(createGradientStrokeDrawable(context, (backgroundType == 3), colorDrawable, round, gradientStroke));
                   } else {
                       TypedValue value = new TypedValue();
                       context.getTheme().resolveAttribute(android.R.attr.panelColorBackground, value, true);
-                      colorDrawable = value.data;
+                      colorDrawable = backgroundType == 1 ? value.data : color;
                       float[] round = {0, 0, 0, 0, lastRound, lastRound, lastRound, lastRound};
-                      views[i].setBackground(createGradientStrokeDrawable(context, colorDrawable, round, gradientStroke));
+                      views[i].setBackground(createGradientStrokeDrawable(context, (backgroundType == 3), colorDrawable, round, gradientStroke));
                   }
               }
           } catch (Exception e) {
@@ -440,30 +537,217 @@ public class IotaUtils {
           }
       }
 
-      public static Drawable createGradientStrokeDrawable(Context context, int color, float[] round, boolean stroke) {
+      public static Drawable createGradientStrokeDrawable(Context context, boolean image, int color, float[] round, boolean stroke) {
           if (stroke) {
-              return createGradientStrokeDrawable(context, color, round);
+              return createGradientStrokeDrawable(context, image, color, round);
           } else {
-              return createRoundShapeDrawable(context, color, round);
+              return createRoundShapeDrawable(context, image, color, round);
           }
       }
 
-      public static LayerDrawable createGradientStrokeDrawable(Context context, int color, float[] round) {
+      public static Drawable createGradientStrokeImage(Context context, View view, int color, float[] round, boolean stroke) {
+          if (stroke) {
+              return createGradientStrokeDrawable(context, view, color, round);
+          } else {
+              return createRoundShapeDrawable(context, view, color, round);
+          }
+      }
+
+      public static LayerDrawable createGradientStrokeDrawable(Context context, boolean image, int color, float[] round) {
           GradientDrawable gradientDrawable = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                                                                   new int[] {context.getResources().getColor(com.android.internal.R.color.gradient_start)
                                                                             ,context.getResources().getColor(com.android.internal.R.color.gradient_end)});
           gradientDrawable.setCornerRadii(round);
 
-          LayerDrawable layerDrawable = new LayerDrawable(new Drawable[] {gradientDrawable, createRoundShapeDrawable(context, color, round)});
+          LayerDrawable layerDrawable = new LayerDrawable(new Drawable[] {gradientDrawable, createRoundShapeDrawable(context, image, color, round)});
           layerDrawable.setLayerInset(1, 2, 2, 2, 2);
           return layerDrawable;
       }
 
-      public static ShapeDrawable createRoundShapeDrawable(Context context, int color, float[] round) {
+      public static LayerDrawable createGradientStrokeDrawable(Context context, View view, int color, float[] round) {
+          GradientDrawable gradientDrawable = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                                                                  new int[] {context.getResources().getColor(com.android.internal.R.color.gradient_start)
+                                                                            ,context.getResources().getColor(com.android.internal.R.color.gradient_end)});
+          gradientDrawable.setCornerRadii(round);
+
+          Drawable shapeDrawable = createRoundShapeDrawable(context, view, color, round);
+          LayerDrawable layerDrawable = new LayerDrawable(new Drawable[] {gradientDrawable, shapeDrawable});
+          layerDrawable.setLayerInset(1, 2, 2, 2, 2);
+          return layerDrawable;
+      }
+
+      public static ShapeDrawable createRoundShapeDrawable(Context context, boolean image, int color, float[] round) {
           RoundRectShape rrS = new RoundRectShape(round, null, null);
           ShapeDrawable shapeDrawable = new ShapeDrawable(rrS);
           shapeDrawable.setColorFilter(new PorterDuffColorFilter(color, Mode.SRC_ATOP));
           return shapeDrawable;
+      }
+
+      private static class CustomShapeDrawable extends ShapeDrawable {
+
+          private Context mContext;
+          private float mRound;
+          private int mColor;
+          private boolean draw;
+          private float width;
+          private float height;
+          private Bitmap bitmap;
+          private Bitmap scaledBitmap;
+          private BitmapShader shader;
+
+          public CustomShapeDrawable(Context context, Shape shape, float round, int color) {
+              super(shape);
+              mContext = context;
+              mRound = round;
+              mColor = color;
+              width = 0f;
+              height = 0f;
+          }
+
+          @Override
+          protected void onDraw(Shape shape, Canvas canvas, Paint paint) {
+              draw = shape.getWidth() != width || shape.getHeight() != height;
+              if (draw) {
+                  bitmap = getCustomImageFromString(mContext, "synthos_volume_panel_background_image").getBitmap();
+                  scaledBitmap = scaleCenterCrop(bitmap, (int) shape.getWidth(), (int) shape.getHeight());
+                  shader = new BitmapShader(scaledBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                  draw = false;
+                  width = shape.getWidth();
+                  height = shape.getHeight();
+              }
+              if (bitmap != null) {
+                  paint.setAntiAlias(true);
+                  paint.setShader(shader);
+              }
+              super.onDraw(shape, canvas, paint);
+          }
+
+      }
+
+      public static Drawable createRoundShapeDrawable(Context context, View view, int color, float[] round) {
+          RoundRectShape rrS = new RoundRectShape(round, null, null);
+          CustomShapeDrawable shapeDrawable = new CustomShapeDrawable(context, rrS, round[7], color);
+          return shapeDrawable;
+      }
+
+      public static BitmapDrawable getCustomImageFromString(Context sysuiContext, String fileName) {
+          BitmapDrawable mImage = null;
+          File file = new File(sysuiContext.getFilesDir(), fileName);
+          if (file.exists()) {
+              final Bitmap image = BitmapFactory.decodeFile(file.getAbsolutePath());
+              mImage = new BitmapDrawable(sysuiContext.getResources(), resizeMaxDeviceSize(sysuiContext, image));
+          }
+          return mImage;
+      }
+
+      public static Bitmap resizeMaxDeviceSize(Context context, Bitmap image) {
+          Bitmap imageToBitmap;
+          DisplayMetrics metrics = new DisplayMetrics();
+          WindowManager wm = context.getSystemService(WindowManager.class);
+          wm.getDefaultDisplay().getRealMetrics(metrics);
+          int maxHeight = metrics.heightPixels;
+          int maxWidth = metrics.widthPixels;
+          try {
+              imageToBitmap = RGB565toARGB888(image);
+              if (maxHeight > 0 && maxWidth > 0) {
+                  int width = imageToBitmap.getWidth();
+                  int height = imageToBitmap.getHeight();
+                  float ratioBitmap = (float) width / (float) height;
+                  float ratioMax = (float) maxWidth / (float) maxHeight;
+
+                  int finalWidth = maxWidth;
+                  int finalHeight = maxHeight;
+                  if (ratioMax > ratioBitmap) {
+                      finalWidth = (int) ((float)maxHeight * ratioBitmap);
+                  } else {
+                      finalHeight = (int) ((float)maxWidth / ratioBitmap);
+                  }
+                  imageToBitmap = Bitmap.createScaledBitmap(imageToBitmap, finalWidth, finalHeight, true);
+                  return imageToBitmap;
+              }
+          } catch (Exception e) {
+              e.printStackTrace();
+          }
+          return image;
+      }
+
+      private static Bitmap RGB565toARGB888(Bitmap img) throws Exception {
+          int numPixels = img.getWidth() * img.getHeight();
+          int[] pixels = new int[numPixels];
+
+          //Get JPEG pixels.  Each int is the color values for one pixel.
+          img.getPixels(pixels, 0, img.getWidth(), 0, 0, img.getWidth(), img.getHeight());
+
+          //Create a Bitmap of the appropriate format.
+          Bitmap result = Bitmap.createBitmap(img.getWidth(), img.getHeight(), Bitmap.Config.ARGB_8888);
+
+          //Set RGB pixels.
+          result.setPixels(pixels, 0, result.getWidth(), 0, 0, result.getWidth(), result.getHeight());
+          return result;
+      }
+
+      public static Bitmap getRoundedCornerBitmap(Bitmap bitmap, int round, int width, int height, int color) {
+        if (bitmap == null) {
+            return null;
+        }
+
+        int zeroWidth = (width <= 0) ? bitmap.getWidth() : width;
+        int zeroHeight = (height <= 0) ? bitmap.getHeight() : height;
+        int rectWidth = (bitmap.getWidth() <= width) ? zeroWidth : bitmap.getWidth();
+        int rectHeight = (bitmap.getWidth() <= height) ? zeroHeight : bitmap.getWidth();
+
+        Bitmap output = Bitmap.createBitmap(zeroWidth, zeroHeight,
+                Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, rectWidth, rectHeight);
+        final Rect roundRect = new Rect(0, 0, zeroWidth, zeroHeight);
+        final RectF rectF = new RectF(roundRect);
+        paint.setAntiAlias(true);
+        canvas.drawARGB(0, 0, 0, 0);
+        paint.setColor(color);
+        canvas.drawRoundRect(rectF, round, round, paint);
+        paint.setXfermode(new PorterDuffXfermode(Mode.SRC_IN));
+        canvas.drawBitmap(bitmap, rect, rect, paint);
+        return output;
+      }
+
+      public static Bitmap getRoundedCornerBitmap(Bitmap bitmap, int round, int width, int height) {
+          return getRoundedCornerBitmap(bitmap, round, width, height, 0xff424242);
+      }
+
+      public static Bitmap scaleCenterCrop(Bitmap source, int newWidth, int newHeight) {
+        int sourceWidth = source.getWidth();
+        int sourceHeight = source.getHeight();
+
+        // Compute the scaling factors to fit the new height and width, respectively.
+        // To cover the final image, the final scaling will be the bigger
+        // of these two.
+        float xScale = (float) newWidth / sourceWidth;
+        float yScale = (float) newHeight / sourceHeight;
+        float scale = Math.max(xScale, yScale);
+
+        // Now get the size of the source bitmap when scaled
+        float scaledWidth = scale * sourceWidth;
+        float scaledHeight = scale * sourceHeight;
+
+        // Let's find out the upper left coordinates if the scaled bitmap
+        // should be centered in the new size give by the parameters
+        float left = (newWidth - scaledWidth) / 2;
+        float top = (newHeight - scaledHeight) / 2;
+
+        // The target rectangle for the new, scaled version of the source bitmap will now
+        // be
+        RectF targetRect = new RectF(left, top, left + scaledWidth, top + scaledHeight);
+
+        // Finally, we create a new bitmap of the specified size and draw our new,
+        // scaled bitmap onto it.
+        Bitmap dest = Bitmap.createBitmap(newWidth, newHeight, source.getConfig());
+        Canvas canvas = new Canvas(dest);
+        canvas.drawBitmap(source, null, targetRect, null);
+
+        return dest;
       }
 
       public static void hideThings(Context sysuiContext, View mRinger) {

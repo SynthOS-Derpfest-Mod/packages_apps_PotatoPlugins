@@ -676,7 +676,6 @@ public class VolumeDialogImpl implements VolumeDialog {
                         true /* dismissShade */);
             });
         }
-        updateTheme();
     }
 
     public void initRingerH() {
@@ -842,6 +841,7 @@ public class VolumeDialogImpl implements VolumeDialog {
             mExtraButtons.setAlpha(0);
             buttonsAnimator.alpha(0);
         }
+        updateTheme();
     }
 
     private void updateODICaptionsH(boolean isServiceComponentEnabled, boolean fromTooltip) {
@@ -962,6 +962,7 @@ public class VolumeDialogImpl implements VolumeDialog {
         }
 
         initSettingsH();
+        updateTheme();
         mDialog.getViewTreeObserver().addOnComputeInternalInsetsListener(mInsetsListener);
 
         if(!mShowing && !mDialog.isShown()) {

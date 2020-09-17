@@ -677,9 +677,9 @@ public class VolumeDialogImpl implements VolumeDialog {
                     updateOutputSwitcherVisibility();
                 }
                 mExpandRows.setExpanded(mExpanded);
+                updateTheme();
             });
         }
-        updateTheme();
     }
 
     public void initRingerH() {
@@ -898,6 +898,7 @@ public class VolumeDialogImpl implements VolumeDialog {
         }
 
         initSettingsH();
+        updateTheme();
         mDialog.getViewTreeObserver().addOnComputeInternalInsetsListener(mInsetsListener);
 
         if(!mShowing && !mDialog.isShown()) {
