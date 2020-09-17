@@ -207,7 +207,12 @@ public class SynthMusic extends RelativeLayout implements Palette.PaletteAsyncLi
           mMediaArtist = artist;
           mMediaArtwork = d;
 
-          update();
+          if (mMediaArtwork != null && (state == PlaybackState.STATE_PAUSED || state == PlaybackState.STATE_PLAYING)) {
+              update();
+              setVisibility(View.VISIBLE);
+          } else {
+              setVisibility(View.GONE);
+          }
     }
 
     public void update() {
