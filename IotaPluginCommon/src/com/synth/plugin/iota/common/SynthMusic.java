@@ -65,10 +65,9 @@ import android.widget.TextView;
 
 import com.synth.plugin.iota.common.R;
 
-import com.android.internal.graphics.palette.Palette;
 import com.android.internal.graphics.ColorUtils;
 
-public class SynthMusic extends RelativeLayout implements Palette.PaletteAsyncListener {
+public class SynthMusic extends RelativeLayout {
     private static final boolean DEBUG = true;
     private static final String TAG = "SynthMusic";
 
@@ -276,9 +275,15 @@ public class SynthMusic extends RelativeLayout implements Palette.PaletteAsyncLi
 
                 mArtwork.setImageDrawable(mMediaArtwork);
 
-                if (mMediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) != null) {
-                    Palette.generateAsync((mMediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)), this);
-                }
+                shadow = 115;
+                colorTextIcons = Color.WHITE;
+                colorArtwork = ColorUtils.setAlphaComponent(Color.BLACK, shadow);
+                mArtwork.setColorFilter(colorArtwork, Mode.SRC_ATOP);
+                mTitle.setTextColor(colorTextIcons);
+                mArtist.setTextColor(colorTextIcons);
+                mPrevious.setColorFilter(colorTextIcons);
+                mPlayPause.setColorFilter(colorTextIcons);
+                mNext.setColorFilter(colorTextIcons);
 
                 setVisibility(show ? View.VISIBLE : View.GONE);
 
@@ -292,24 +297,6 @@ public class SynthMusic extends RelativeLayout implements Palette.PaletteAsyncLi
 
         mArtwork.setClipToOutline(true);
 
-   }
-
-   @Override
-   public void onGenerated(Palette palette) {
-
-        shadow = 115;
-        colorArtwork = Color.BLACK;
-        colorTextIcons = Color.WHITE;
-
-        colorTextIcons = palette.getLightVibrantColor(colorTextIcons);
-        colorArtwork = ColorUtils.setAlphaComponent(palette.getDarkVibrantColor(colorArtwork), shadow);
-
-        mArtwork.setColorFilter(colorArtwork, Mode.SRC_ATOP);
-        mTitle.setTextColor(colorTextIcons);
-        mArtist.setTextColor(colorTextIcons);
-        mPrevious.setColorFilter(colorTextIcons);
-        mPlayPause.setColorFilter(colorTextIcons);
-        mNext.setColorFilter(colorTextIcons);
    }
 
     public void skipTrackNext() {
