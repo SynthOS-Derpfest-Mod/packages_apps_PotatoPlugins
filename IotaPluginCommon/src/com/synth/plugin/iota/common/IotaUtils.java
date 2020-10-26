@@ -445,6 +445,14 @@ public class IotaUtils {
                       colorDrawable = value.data;
                       float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
                       views[i].setBackground(createGradientStrokeDrawable(context, false, colorDrawable, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_background")) {
+                      colorDrawable = views[i].getContext().getResources().getColor(R.color.volume_dialog_background);
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, colorDrawable, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_ringer_bcg")) {
+                      colorDrawable = context.getResources().getColor(com.android.internal.R.color.gradient_start);
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, colorDrawable, round, gradientStroke));
                   } else {
                       TypedValue value = new TypedValue();
                       context.getTheme().resolveAttribute(android.R.attr.panelColorBackground, value, true);
@@ -471,6 +479,12 @@ public class IotaUtils {
                   if (defaultDrawablesNames[i].equals("rounded_bg_full")) {
                       float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
                       views[i].setBackground(createGradientStrokeDrawable(context, false, color, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_background")) {
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, color, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_ringer_bcg")) {
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, color, round, gradientStroke));
                   } else {
                       float[] round = {0, 0, 0, 0, roundValue, roundValue, roundValue, roundValue};
                       views[i].setBackground(createGradientStrokeDrawable(context, false, color, round, gradientStroke));
@@ -488,12 +502,20 @@ public class IotaUtils {
           TypedValue tValue = new TypedValue();
           context.getTheme().resolveAttribute(android.R.attr.dialogCornerRadius, tValue, true);
           float roundSystem = (float) tValue.data;
+          int colorDrawable;
 
           try {
               for (int i = 0; i < views.length; i++) {
                   if (defaultDrawablesNames[i].equals("rounded_bg_full")) {
                       float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
                       views[i].setBackground(createGradientStrokeImage(context, views[i], color, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_background")) {
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeImage(context, views[i], color, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_ringer_bcg")) {
+                      colorDrawable = context.getResources().getColor(com.android.internal.R.color.gradient_start);
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, false, colorDrawable, round, gradientStroke));
                   } else {
                       float[] round = {0, 0, 0, 0, roundValue, roundValue, roundValue, roundValue};
                       views[i].setBackground(null);
@@ -523,6 +545,16 @@ public class IotaUtils {
                       context.getTheme().resolveAttribute(android.R.attr.colorBackgroundFloating, value, true);
                       colorDrawable = backgroundType == 1 ? value.data : color;
                       float[] round = {lastRound, lastRound, lastRound, lastRound, lastRound, lastRound, lastRound, lastRound};
+                      views[i].setBackground(createGradientStrokeDrawable(context, (backgroundType == 3), colorDrawable, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_background")) {
+                      colorDrawable = backgroundType == 1 ? views[i].getContext().getResources().getColor(R.color.accent_tint_color_selector) : color;
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
+                      views[i].setBackground(createGradientStrokeDrawable(context, (backgroundType == 3), colorDrawable, round, gradientStroke));
+                  } else if (defaultDrawablesNames[i].equals("volume_dialog_ringer_bcg")) {
+                      TypedValue value = new TypedValue();
+                      context.getTheme().resolveAttribute(android.R.attr.colorAccent, value, true);
+                      colorDrawable = backgroundType == 1 ? context.getResources().getColor(com.android.internal.R.color.gradient_start) : color;
+                      float[] round = {roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue, roundValue};
                       views[i].setBackground(createGradientStrokeDrawable(context, (backgroundType == 3), colorDrawable, round, gradientStroke));
                   } else {
                       TypedValue value = new TypedValue();
@@ -607,18 +639,23 @@ public class IotaUtils {
           @Override
           protected void onDraw(Shape shape, Canvas canvas, Paint paint) {
               draw = shape.getWidth() != width || shape.getHeight() != height;
-              if (draw) {
-                  bitmap = getCustomImageFromString(mContext, "synthos_volume_panel_background_image").getBitmap();
-                  scaledBitmap = scaleCenterCrop(bitmap, (int) shape.getWidth(), (int) shape.getHeight());
-                  shader = new BitmapShader(scaledBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-                  draw = false;
-                  width = shape.getWidth();
-                  height = shape.getHeight();
+              try {
+                  if (draw) {
+                      bitmap = getCustomImageFromString(mContext, "synthos_volume_panel_background_image").getBitmap();
+                      scaledBitmap = scaleCenterCrop(bitmap, (int) shape.getWidth(), (int) shape.getHeight());
+                      shader = new BitmapShader(scaledBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                      draw = false;
+                      width = shape.getWidth();
+                      height = shape.getHeight();
+                  }
+                  if (bitmap != null) {
+                      paint.setAntiAlias(true);
+                      paint.setShader(shader);
+                  }
+              } catch (Exception e) {
+                  Log.d(TAG, e.getMessage());
               }
-              if (bitmap != null) {
-                  paint.setAntiAlias(true);
-                  paint.setShader(shader);
-              }
+
               super.onDraw(shape, canvas, paint);
           }
 
